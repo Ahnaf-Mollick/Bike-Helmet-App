@@ -12,7 +12,7 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
   final FocusNode searchFocus = FocusNode();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-
+  final ScrollController _scrollController = ScrollController();
   // Starts empty — no data on first open
   final List<Map<String, dynamic>> _helmets = [];
 
@@ -203,9 +203,9 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
                                         setState(() {
                                           _helmets.add({
                                             'name': name,
-                                            'price': price.startsWith('\$')
+                                            'price': price.startsWith('৳')
                                                 ? price
-                                                : '\$$price',
+                                                : '৳$price',
                                             'bgColor': selectedBg,
                                             'accentColor': selectedAccent,
                                           });
@@ -256,6 +256,39 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
   void deleteHelmets(Map<String, dynamic> helmet) {
     setState(() {
       _helmets.remove(helmet);
+    });
+  }
+
+  void backToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  // ─── Sort Helmets ───────────────────────────────────────────────────────────
+  void sortList() {
+    setState(() {
+      _helmets.sort((a, b) {
+        double priceA = double.parse(
+          a['price']
+              .replaceAll('৳', '')
+              .replaceAll('BDT', '')
+              .replaceAll(',', '')
+              .trim(),
+        );
+
+        double priceB = double.parse(
+          b['price']
+              .replaceAll('৳', '')
+              .replaceAll('BDT', '')
+              .replaceAll(',', '')
+              .trim(),
+        );
+
+        return priceA.compareTo(priceB);
+      });
     });
   }
 
@@ -327,8 +360,15 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
           backgroundColor: const Color(0xFFF2F2F7),
+          floatingActionButton: FloatingActionButton(
+            onPressed: backToTop,
+            backgroundColor: Colors.black,
+            child: const Icon(Icons.arrow_upward, color: Colors.white),
+          ),
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
           body: SafeArea(
             child: CustomScrollView(
+              controller: _scrollController,
               slivers: [
                 SliverToBoxAdapter(
                   child: Padding(
@@ -473,44 +513,59 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
   }
 
   Widget _buildSearchBar() {
-    return Container(
-      height: 46,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: TextField(
-        controller: _searchController,
-        focusNode: searchFocus,
-        onChanged: (val) => setState(() => _searchQuery = val.trim()),
-        decoration: InputDecoration(
-          hintText: 'Search helmets...',
-          hintStyle: TextStyle(
-            color: Colors.black.withOpacity(0.35),
-            fontSize: 15,
-            fontWeight: FontWeight.w400,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Container(
+            height: 46,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TextField(
+              controller: _searchController,
+              focusNode: searchFocus,
+              onChanged: (val) => setState(() => _searchQuery = val.trim()),
+              decoration: InputDecoration(
+                hintText: 'Search helmets...',
+                hintStyle: TextStyle(
+                  color: Colors.black.withOpacity(0.35),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: Colors.black.withOpacity(0.35),
+                  size: 20,
+                ),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                          searchFocus.unfocus();
+                        },
+                        child: Icon(
+                          Icons.close,
+                          size: 18,
+                          color: Colors.black.withOpacity(0.4),
+                        ),
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
           ),
-          prefixIcon: Icon(
-            Icons.search,
-            color: Colors.black.withOpacity(0.35),
-            size: 20,
-          ),
-          // Clear button appears while typing
-          suffixIcon: _searchQuery.isNotEmpty
-              ? GestureDetector(
-                  onTap: () {
-                    _searchController.clear();
-                    setState(() => _searchQuery = '');
-                    searchFocus.unfocus();
-                  },
-                  child: Icon(Icons.close,
-                      size: 18, color: Colors.black.withOpacity(0.4)),
-                )
-              : null,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
-      ),
+        const SizedBox(width: 10),
+        ElevatedButton(
+          onPressed: sortList,
+          child: const Icon(Icons.sort_sharp, size: 16),
+        ),
+      ],
     );
   }
 
