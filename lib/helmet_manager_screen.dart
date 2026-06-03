@@ -31,6 +31,7 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
   void addHelmets() {
     final nameController = TextEditingController();
     final priceController = TextEditingController();
+    final imageURLController = TextEditingController();
     Color selectedBg = const Color(0xFF2C2C2E);
     Color selectedAccent = const Color(0xFFE8A020);
 
@@ -138,6 +139,14 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
                                     keyboardType: TextInputType.number,
                                   ),
                                   const SizedBox(height: 18),
+                                  _dialogLabel('Image URL'),
+                                  const SizedBox(height: 6),
+                                  _dialogField(
+                                    controller: imageURLController,
+                                    hint: 'link to helmet image',
+                                    keyboardType: TextInputType.url,
+                                  ),
+                                  const SizedBox(height: 18),
 
                                   // Card theme color picker
                                   _dialogLabel('Card Theme'),
@@ -206,6 +215,8 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
                                             'price': price.startsWith('৳')
                                                 ? price
                                                 : '৳$price',
+                                            'imageURL':
+                                                imageURLController.text.trim(),
                                             'bgColor': selectedBg,
                                             'accentColor': selectedAccent,
                                           });
@@ -596,6 +607,32 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
                 ),
               ),
             ),
+          ),
+          Positioned(
+            right: 20,
+            top: 10,
+            child: Container(
+                width: 180,
+                height: 180,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(100),
+                  child: Image.network(
+                    helmet['imageURL'] as String,
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 120,
+                      height: 120,
+                      color: Colors.white.withOpacity(0.15),
+                      child: const Icon(Icons.broken_image_rounded,
+                          size: 28, color: Colors.white),
+                    ),
+                  ),
+                )),
           ),
 
           // Price tag
