@@ -1,16 +1,28 @@
-# bike_helmet
+# 🪖 Bike Helmet
 
-A new Flutter project.
+A simple Flutter practice project focused on learning Flutter fundamentals and basic app structuring.
 
-## Getting Started
+## 📱 Features
 
-This project is a starting point for a Flutter application.
+- ➕ Add new helmets  
+- 🔍 Search for specific helmets  
+- 📊 Sort helmets by price  
+- 🗑️ Delete helmets from the list  
 
-A few resources to get you started if this is your first Flutter project:
+## 🎯 Purpose
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+This project was built to practice:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Flutter UI design  
+- Stateful widget management  
+- List operations  
+- Search and sorting functionality  
+- Basic CRUD operations  
+
+## 🖼️ Screenshots
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/c1b9fc8f-a54d-45e2-875b-14f40810fcba" width="240" alt="Home Screen"/>
+  <img src="https://github.com/user-attachments/assets/6e8b4316-b9d2-46d0-8746-dec9d8d83af3" width="240" alt="Helmet List"/>
+  <img src="https://github.com/user-attachments/assets/91adc502-2c9f-4b7b-adb3-09cd17a8e623" width="240" alt="Search Feature"/>
+</p>
