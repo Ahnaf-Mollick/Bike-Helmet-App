@@ -4,7 +4,8 @@ A simple Flutter practice project focused on learning Flutter fundamentals and b
 
 ## 📱 Features
 
-- ➕ Add new helmets  
+- ➕ Add new helmets
+- 🧩 API Integration
 - 🔍 Search for specific helmets  
 - 📊 Sort helmets by price  
 - 🗑️ Delete helmets from the list  
