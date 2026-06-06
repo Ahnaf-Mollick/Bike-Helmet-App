@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class helmet_manager_screen extends StatefulWidget {
   const helmet_manager_screen({super.key});
@@ -14,10 +16,47 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
   String _searchQuery = '';
   final ScrollController _scrollController = ScrollController();
   // Starts empty — no data on first open
-  final List<Map<String, dynamic>> _helmets = [];
+  List<Map<String, dynamic>> _helmets = [];
+  bool _isLoading = true;
+  // Init Function to Call The Api and Get The Data
+  @override
+  void initState() {
+    super.initState();
+    fetchProducts();
+  }
+
+  Future<void> fetchProducts() async {
+    try {
+      final response =
+          await http.get(Uri.parse("https://api.pixora.one/products.php"));
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+
+        setState(() {
+          _helmets = List<Map<String, dynamic>>.from(jsonData["data"]);
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      // Show error message if API call fails
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Failed to load helmets Internet error. Please try again later.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   // ─── Filtered list based on search query ───────────────────────────────────
-
   List<Map<String, dynamic>> get _filteredHelmets {
     if (_searchQuery.isEmpty) return _helmets;
     return _helmets.where((h) {
@@ -27,21 +66,10 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
   }
 
   // ─── Add Helmet ─────────────────────────────────────────────────────────────
-
   void addHelmets() {
     final nameController = TextEditingController();
     final priceController = TextEditingController();
     final imageURLController = TextEditingController();
-    Color selectedBg = const Color(0xFF2C2C2E);
-    Color selectedAccent = const Color(0xFFE8A020);
-
-    final List<Map<String, Color>> colorOptions = [
-      {'bg': const Color(0xFF2C2C2E), 'accent': const Color(0xFFE8A020)},
-      {'bg': const Color(0xFF5C3A2E), 'accent': const Color(0xFFE53030)},
-      {'bg': const Color(0xFF1A2C4E), 'accent': const Color(0xFF3A8EFF)},
-      {'bg': const Color(0xFF1E3A2F), 'accent': const Color(0xFF34C76A)},
-      {'bg': const Color(0xFF3A1A4E), 'accent': const Color(0xFFAA5CFF)},
-    ];
 
     showDialog(
       context: context,
@@ -148,54 +176,6 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
                                   ),
                                   const SizedBox(height: 18),
 
-                                  // Card theme color picker
-                                  _dialogLabel('Card Theme'),
-                                  const SizedBox(height: 10),
-                                  Row(
-                                    children: colorOptions.map((opt) {
-                                      final isSelected =
-                                          opt['bg'] == selectedBg &&
-                                              opt['accent'] == selectedAccent;
-                                      return GestureDetector(
-                                        onTap: () => setModalState(() {
-                                          selectedBg = opt['bg']!;
-                                          selectedAccent = opt['accent']!;
-                                        }),
-                                        child: AnimatedContainer(
-                                          duration:
-                                              const Duration(milliseconds: 180),
-                                          margin:
-                                              const EdgeInsets.only(right: 10),
-                                          width: 36,
-                                          height: 36,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: opt['accent'],
-                                            border: isSelected
-                                                ? Border.all(
-                                                    color:
-                                                        const Color(0xFF1C1C1E),
-                                                    width: 2.5,
-                                                  )
-                                                : null,
-                                            boxShadow: isSelected
-                                                ? [
-                                                    BoxShadow(
-                                                      color: opt['accent']!
-                                                          .withOpacity(0.45),
-                                                      blurRadius: 8,
-                                                      offset:
-                                                          const Offset(0, 3),
-                                                    )
-                                                  ]
-                                                : [],
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                  const SizedBox(height: 24),
-
                                   // Save button
                                   SizedBox(
                                     width: double.infinity,
@@ -215,10 +195,8 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
                                             'price': price.startsWith('৳')
                                                 ? price
                                                 : '৳$price',
-                                            'imageURL':
+                                            'image':
                                                 imageURLController.text.trim(),
-                                            'bgColor': selectedBg,
-                                            'accentColor': selectedAccent,
                                           });
                                         });
                                         Navigator.of(ctx).pop();
@@ -262,8 +240,7 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
     );
   }
 
-  // ─── Delete Helmet ───────────────────────────────────────────────────────────
-
+  // ─── Delete Helmet
   void deleteHelmets(Map<String, dynamic> helmet) {
     setState(() {
       _helmets.remove(helmet);
@@ -278,33 +255,18 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
     );
   }
 
-  // ─── Sort Helmets ───────────────────────────────────────────────────────────
+  // ─── Sort Helmets
   void sortList() {
     setState(() {
       _helmets.sort((a, b) {
-        double priceA = double.parse(
-          a['price']
-              .replaceAll('৳', '')
-              .replaceAll('BDT', '')
-              .replaceAll(',', '')
-              .trim(),
-        );
-
-        double priceB = double.parse(
-          b['price']
-              .replaceAll('৳', '')
-              .replaceAll('BDT', '')
-              .replaceAll(',', '')
-              .trim(),
-        );
-
+        int priceA = a['price'];
+        int priceB = b['price'];
         return priceA.compareTo(priceB);
       });
     });
   }
 
   // ─── Dialog helpers ──────────────────────────────────────────────────────────
-
   Widget _dialogLabel(String text) => Text(
         text,
         style: const TextStyle(
@@ -314,7 +276,6 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
           letterSpacing: 0.1,
         ),
       );
-
   Widget _dialogField({
     required TextEditingController controller,
     required String hint,
@@ -348,7 +309,6 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
   }
 
   // ─── Lifecycle ───────────────────────────────────────────────────────────────
-
   @override
   void dispose() {
     searchFocus.dispose();
@@ -356,8 +316,7 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
     super.dispose();
   }
 
-  // ─── Build ───────────────────────────────────────────────────────────────────
-
+//--Designing the UI of the Helmet Manager Screen
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredHelmets;
@@ -398,81 +357,108 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
                 ),
 
                 // ── Empty state (no helmets added yet) ──
-                if (_helmets.isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.no_photography_outlined,
-                            size: 64,
-                            color: Colors.black.withOpacity(0.12),
+                _isLoading
+                    ? SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const CircularProgressIndicator(
+                                color: Colors.red,
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                'Loading helmets...',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black.withOpacity(0.25),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 14),
-                          Text(
-                            'No helmets yet',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black.withOpacity(0.25),
+                        ),
+                      )
+                    : _helmets.isEmpty
+                        ? SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.not_interested,
+                                    size: 64,
+                                    color: Colors.black.withOpacity(0.12),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    'No helmets yet',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black.withOpacity(0.25),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Tap + Add to get started',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black.withOpacity(0.18),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Tap Add to get started',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black.withOpacity(0.18),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
+                          )
 
-                // ── No search results ──
-                else if (filtered.isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.search_off_rounded,
-                              size: 56, color: Colors.black.withOpacity(0.12)),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No match for "$_searchQuery"',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black.withOpacity(0.25),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
+                        // ── No search results ──
+                        : filtered.isEmpty
+                            ? SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.search_off_rounded,
+                                          size: 56,
+                                          color:
+                                              Colors.black.withOpacity(0.12)),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'No match for "$_searchQuery"',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black.withOpacity(0.25),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
 
-                // ── Helmet cards ──
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final helmet = filtered[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16.0),
-                            child: _buildHelmetCard(helmet),
-                          );
-                        },
-                        childCount: filtered.length,
-                      ),
-                    ),
-                  ),
+                            // ── Helmet cards ──
+
+                            : SliverPadding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20.0),
+                                sliver: SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      final helmet = filtered[index];
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 16.0),
+                                        child: _buildHelmetCard(helmet),
+                                      );
+                                    },
+                                    childCount: filtered.length,
+                                  ),
+                                ),
+                              ),
 
                 const SliverToBoxAdapter(child: SizedBox(height: 20)),
               ],
@@ -584,7 +570,7 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
     return Container(
       height: 200,
       decoration: BoxDecoration(
-        color: helmet['bgColor'] as Color,
+        color: const Color(0xFF6B2F23),
         borderRadius: BorderRadius.circular(20),
       ),
       clipBehavior: Clip.hardEdge,
@@ -601,7 +587,7 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    (helmet['accentColor'] as Color).withOpacity(0.22),
+                    (const Color(0xFFE53030)).withOpacity(0.22),
                     Colors.transparent,
                   ],
                 ),
@@ -620,7 +606,7 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(100),
                   child: Image.network(
-                    helmet['imageURL'] as String,
+                    helmet['image'] as String,
                     width: 120,
                     height: 120,
                     fit: BoxFit.cover,
@@ -642,11 +628,11 @@ class _helmet_manager_screenState extends State<helmet_manager_screen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
-                color: helmet['accentColor'] as Color,
+                color: const Color(0xFF5C1A2E),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                helmet['price'] as String,
+                '৳ ${helmet['price']}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 13,
